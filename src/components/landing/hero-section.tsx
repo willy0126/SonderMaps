@@ -19,18 +19,21 @@ export function HeroSection() {
 
       {/* 그라데이션 오버레이 */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/80" />
+      {/* 하단 페이드 — 다음 섹션과의 부드러운 전환 */}
+      <div className="absolute bottom-0 left-0 z-1 h-32 w-full bg-linear-to-b from-transparent to-neutral-950" />
 
       {/* 텍스트 컨텐츠 */}
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 font-[family-name:var(--font-pretendard)]">
-        <h1 className="font-(family-name:--font-space-grotesk) text-[80px] font-bold tracking-tight text-white">
+        <h1 className="animate-fade-in-up font-(family-name:--font-space-grotesk) text-[80px] font-bold tracking-tight text-white" style={{ animationDelay: "1s" }}>
           SonderMaps
         </h1>
-        <p className="mt-4 text-lg font-light text-white/85 md:text-xl">
+        <p className="animate-fade-in-up mt-4 text-lg font-light text-white/85 md:text-xl" style={{ animationDelay: "1.3s" }}>
           모든 장소엔 당신이 모르는 이야기가 있다.
         </p>
         <Link
           href="/map"
-          className="mt-10 rounded-full bg-violet-500/80 px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-500 md:text-base"
+          className="animate-fade-in-up mt-10 rounded-full bg-indigo-500/80 px-8 py-3 text-sm font-medium text-white transition-colors duration-500 hover:bg-indigo-800 md:text-base"
+          style={{ animationDelay: "1.3s" }}
         >
           이야기 발견하기
         </Link>
@@ -38,7 +41,7 @@ export function HeroSection() {
 
       {/* 스크롤 인디케이터 */}
       <div className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce">
-        <ChevronDown className="h-6 w-6 text-white/50" />
+        <ChevronDown className="h-6 w-6 text-white/80" />
       </div>
     </section>
   )
