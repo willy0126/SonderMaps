@@ -12,7 +12,13 @@ export default async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        setAll(
+          cookiesToSet: {
+            name: string
+            value: string
+            options: CookieOptions
+          }[]
+        ) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -25,7 +31,25 @@ export default async function proxy(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+
+  // Redirect unauthenticated users away from protected routes
+  if (path.startsWith("/map") && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/auth"
+    return NextResponse.redirect(url)
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (path.startsWith("/auth") && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/map"
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }

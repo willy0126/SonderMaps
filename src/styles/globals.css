@@ -42,6 +42,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-fade-in-up: fade-in-up 0.6s ease-out both;
+  --animate-marker-pulse: marker-pulse 3.5s ease-out infinite backwards;
 }
 
 :root {
@@ -133,8 +136,13 @@
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes marker-pulse {
@@ -146,10 +154,6 @@
     transform: scale(2.5);
     opacity: 0;
   }
-}
-
-.animate-marker-pulse {
-  animation: marker-pulse 3.5s ease-out infinite backwards;
 }
 
 .mapboxgl-ctrl-logo {

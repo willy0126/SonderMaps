@@ -7,8 +7,20 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <div className="grid min-h-dvh lg:grid-cols-2">
       {/* Left panel — branding (lg+) */}
       <div className="relative hidden flex-col justify-between bg-neutral-950 p-10 lg:flex">
+        {/* Background image + overlay */}
+        <div className="animate-fade-in absolute inset-0">
+          <Image
+            src="/images/auth-main.jpg"
+            alt=""
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/60" />
+        </div>
+
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="animate-fade-in-up relative z-10 flex w-fit items-center gap-2">
           <Image
             src="/images/logo-main.png"
             alt="SonderMaps"
@@ -19,7 +31,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </Link>
 
         {/* Quote */}
-        <blockquote className="max-w-md">
+        <blockquote className="animate-fade-in-up relative z-10 max-w-md" style={{ animationDelay: "0.3s" }}>
           <p className="font-(family-name:--font-noto-serif) text-lg font-light leading-relaxed tracking-wide text-white/70">
             &ldquo;스쳐 지나가는 모든 사람에게도
             <br />

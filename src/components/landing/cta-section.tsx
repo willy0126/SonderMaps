@@ -60,9 +60,23 @@ export function CtaSection() {
         style={{ animationDuration: "1s", animationDelay: "1.4s" }}
       >
         <div className="flex gap-4 text-[12px] tracking-wide text-white/50">
-          <span>이용약관</span>
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-white/70"
+          >
+            이용약관
+          </a>
           <span className="text-white/50">·</span>
-          <span>개인정보처리방침</span>
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-white/70"
+          >
+            개인정보처리방침
+          </a>
         </div>
         <p className="text-[11px] tracking-wide text-white/25">
           © 2026 SonderMaps · Built by{" "}
