@@ -24,15 +24,15 @@ export function HeroSection() {
 
       {/* 텍스트 컨텐츠 */}
       <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 font-[family-name:var(--font-pretendard)]">
-        <h1 className="animate-fade-in-up font-(family-name:--font-space-grotesk) text-[80px] font-bold tracking-tight text-white" style={{ animationDelay: "1s" }}>
+        <h1 className="animate-fade-in-up font-(family-name:--font-space-grotesk) text-[85px] font-bold tracking-tight text-white" style={{ animationDelay: "1s" }}>
           SonderMaps
         </h1>
-        <p className="animate-fade-in-up mt-4 text-lg font-light text-white/85 md:text-xl" style={{ animationDelay: "1.3s" }}>
-          모든 장소엔 당신이 모르는 이야기가 있다.
+        <p className="animate-fade-in-up mt-10 text-lg font-light text-white/85 md:text-xl" style={{ animationDelay: "1.3s" }}>
+          모든 장소엔 당신이 모르는 이야기가 있다
         </p>
         <Link
           href="/map"
-          className="animate-fade-in-up mt-10 rounded-full bg-indigo-500/80 px-8 py-3 text-sm font-medium text-white transition-colors duration-500 hover:bg-indigo-800 md:text-base"
+          className="animate-fade-in-up mt-6 rounded-full bg-neutral-200 px-8 py-3 text-sm font-medium text-neutral-950 transition-colors duration-300 hover:bg-neutral-300 md:text-base"
           style={{ animationDelay: "1.3s" }}
         >
           이야기 발견하기

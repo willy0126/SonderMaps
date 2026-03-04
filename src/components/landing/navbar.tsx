@@ -34,20 +34,12 @@ export function Navbar() {
       </Link>
 
       {/* 우측 메뉴 */}
-      <div className="flex items-center gap-6">
-        <Link
-          href="/login"
-          className="text-sm font-medium text-white/70 transition-colors hover:text-white"
-        >
-          로그인
-        </Link>
-        <Link
-          href="/signup"
-          className="rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/15"
-        >
-          시작하기
-        </Link>
-      </div>
+      <Link
+        href="/auth"
+        className="rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/15"
+      >
+        시작하기
+      </Link>
       </div>
     </nav>
   )
