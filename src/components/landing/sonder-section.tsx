@@ -25,8 +25,17 @@ export function SonderSection() {
   }, [])
 
   return (
-    <section className="flex min-h-dvh items-center justify-center bg-neutral-950 px-6">
-      <div ref={sectionRef} className="max-w-3xl text-center">
+    <section className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-neutral-950 px-6">
+      {/* Ambient glow orbs */}
+      <div
+        className="pointer-events-none absolute top-1/4 -left-20 h-75 w-75 rounded-full bg-violet-500/10 blur-3xl"
+      />
+      <div
+        className="pointer-events-none absolute bottom-1/4 -right-16 h-62.5 w-62.5 rounded-full blur-3xl"
+        style={{ backgroundColor: "rgba(122, 232, 200, 0.05)" }}
+      />
+
+      <div ref={sectionRef} className="relative max-w-3xl text-center">
         <p
           className={`font-(family-name:--font-noto-serif) text-l font-normal uppercase tracking-[0.4em] text-violet-400 ${
             visible ? "animate-fade-in-up" : "opacity-0"

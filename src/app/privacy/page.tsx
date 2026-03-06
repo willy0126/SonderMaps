@@ -1,17 +1,8 @@
-import Link from "next/link"
-
 export default function PrivacyPage() {
   return (
     <div className="min-h-dvh bg-neutral-950 px-6 py-16">
       <div className="mx-auto max-w-2xl">
-        <Link
-          href="/"
-          className="text-sm text-white/40 transition-colors hover:text-white/70"
-        >
-          &larr; 홈으로 돌아가기
-        </Link>
-
-        <h1 className="mt-8 text-2xl font-semibold tracking-tight text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-white">
           개인정보처리방침
         </h1>
         <p className="mt-2 text-sm text-white/40">최종 수정일: 2026년 3월 4일</p>

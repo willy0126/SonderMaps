@@ -26,8 +26,17 @@ export function CtaSection() {
   }, [])
 
   return (
-    <section className="relative flex min-h-dvh flex-col items-center justify-center bg-linear-to-b from-[#111113] to-[#141418] px-6">
-      <div ref={sectionRef} className="max-w-3xl text-center">
+    <section className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-linear-to-b from-[#111113] to-[#141418] px-6">
+      {/* Ambient glow orbs */}
+      <div
+        className="pointer-events-none absolute top-1/4 left-1/2 h-100 w-100 -translate-x-1/2 rounded-full bg-violet-500/10 blur-3xl"
+      />
+      <div
+        className="pointer-events-none absolute bottom-1/4 -left-12 h-50 w-50 rounded-full blur-3xl"
+        style={{ backgroundColor: "rgba(246, 201, 68, 0.05)" }}
+      />
+
+      <div ref={sectionRef} className="relative max-w-3xl text-center">
         {/* Copy */}
         <p
           className={`font-(family-name:--font-noto-serif) text-2xl font-light leading-relaxed tracking-wide text-white/90 md:text-4xl ${
