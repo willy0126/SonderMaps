@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Map } from "react-map-gl/mapbox"
 import type { MapMouseEvent } from "react-map-gl/mapbox"
 import { MAPBOX_TOKEN, DEFAULT_MAP_CONFIG } from "@/lib/mapbox/config"
@@ -18,12 +18,12 @@ import { useQueryClient } from "@tanstack/react-query"
 import "mapbox-gl/dist/mapbox-gl.css"
 
 export function MapView() {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const { viewState, setViewState } = useMapStore()
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [formPosition, setFormPosition] = useState<{ lng: number; lat: number } | null>(null)
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
 
   const { data: stories = [] } = useNearbyStories({
     latitude: viewState.latitude,
@@ -41,7 +41,7 @@ export function MapView() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      router.push("/auth")
+      setShowAuthPrompt(true)
       return
     }
 
@@ -142,6 +142,7 @@ export function MapView() {
   }
 
   return (
+    <>
     <Map
       {...viewState}
       onMove={(evt) => setViewState(evt.viewState)}
@@ -184,6 +185,44 @@ export function MapView() {
           }}
         />
       )}
+
     </Map>
+    <AuthPrompt show={showAuthPrompt} onClose={() => setShowAuthPrompt(false)} />
+    </>
+  )
+}
+
+function AuthPrompt({ show, onClose }: { show: boolean; onClose: () => void }) {
+  if (!show) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" style={{ animationDuration: "0.3s" }}>
+      {/* backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      {/* modal */}
+      <div className="relative animate-fade-in-up space-y-5 rounded-2xl border border-white/10 bg-neutral-900/95 px-8 py-7 text-center shadow-2xl backdrop-blur-sm" style={{ animationDuration: "0.3s" }}>
+        <p className="text-[15px] tracking-wide text-white/80">
+          이야기를 남기려면 로그인이 필요해요
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="cursor-pointer rounded-full border border-white/10 px-5 py-1.5 text-[13px] tracking-wide text-white/50 transition-all hover:border-white/20 hover:text-white/70"
+          >
+            취소
+          </button>
+          <Link
+            href="/auth"
+            className="rounded-full bg-white/15 px-5 py-1.5 text-[13px] font-medium tracking-wide text-white/80 transition-all hover:bg-white/25"
+          >
+            로그인하기
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

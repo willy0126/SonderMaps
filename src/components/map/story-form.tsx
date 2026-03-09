@@ -47,10 +47,10 @@ export function StoryForm({ longitude, latitude, onClose, onSuccess }: StoryForm
       latitude,
       longitude,
       mood,
-      author_id: user.id,
     })
 
     if (insertError) {
+      console.error("Story insert error:", insertError)
       setError("저장에 실패했습니다. 다시 시도해주세요.")
       setSubmitting(false)
       return
