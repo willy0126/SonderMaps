@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { Popup } from "react-map-gl/mapbox"
 import { createClient } from "@/lib/supabase/client"
+import { MAPBOX_TOKEN } from "@/lib/mapbox/config"
+import { useStoryResonance } from "@/hooks/use-story-resonance"
+import { useToggleResonance } from "@/hooks/use-toggle-resonance"
 import type { Story } from "@/types/story"
 
 const MOOD_CONFIG = {
@@ -25,11 +28,53 @@ function generateAnonName(id: string): string {
 interface StoryPopupProps {
   story: Story
   onClose: () => void
+  onAuthRequired: () => void
+  onAuthorClick: (authorId: string, authorName: string) => void
 }
 
-export function StoryPopup({ story, onClose }: StoryPopupProps) {
+export function StoryPopup({ story, onClose, onAuthRequired, onAuthorClick }: StoryPopupProps) {
   const mood = story.mood && MOOD_CONFIG[story.mood]
   const [authorName, setAuthorName] = useState<string | null>(null)
+  const [isAnonymousAuthor, setIsAnonymousAuthor] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [placeName, setPlaceName] = useState<string | null>(null)
+  const { data: resonance } = useStoryResonance(story.id)
+  const { mutate: toggleResonance } = useToggleResonance()
+
+  const isOwnStory = currentUserId === story.author_id
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
+  }, [])
+
+  function handleResonanceClick() {
+    if (!currentUserId) {
+      onAuthRequired()
+      return
+    }
+    if (isOwnStory) return
+    toggleResonance(story.id)
+  }
+
+  useEffect(() => {
+    fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${story.longitude},${story.latitude}.json?access_token=${MAPBOX_TOKEN}&language=ko&types=poi,address,neighborhood&limit=1`)
+      .then((res) => res.json())
+      .then((data) => {
+        const feature = data.features?.[0]
+        if (!feature) return
+        // context에서 동네(neighborhood) 추출하여 "POI · 동네" 형태로 표시
+        const neighborhood = feature.context?.find((c: { id: string }) => c.id.startsWith("neighborhood"))
+        if (feature.place_type?.[0] === "neighborhood") {
+          setPlaceName(feature.text)
+        } else if (neighborhood) {
+          setPlaceName(`${feature.text} · ${neighborhood.text}`)
+        } else {
+          setPlaceName(feature.text)
+        }
+      })
+      .catch(() => {})
+  }, [story.longitude, story.latitude])
 
   useEffect(() => {
     if (!story.author_id) return
@@ -43,8 +88,10 @@ export function StoryPopup({ story, onClose }: StoryPopupProps) {
         if (!data) return
         if (data.is_anonymous || !data.username) {
           setAuthorName(generateAnonName(story.author_id!))
+          setIsAnonymousAuthor(true)
         } else {
           setAuthorName(data.username)
+          setIsAnonymousAuthor(false)
         }
       })
   }, [story.author_id])
@@ -57,32 +104,64 @@ export function StoryPopup({ story, onClose }: StoryPopupProps) {
       onClose={onClose}
       closeOnClick={false}
       className="story-popup"
-      maxWidth="320px"
+      maxWidth="360px"
     >
-      <div className="space-y-3 p-1">
+      <div className="space-y-3 p-2">
         {mood && (
           <div className="flex items-center gap-2">
-            <span className="text-base">{mood.emoji}</span>
+            <span className="text-lg">{mood.emoji}</span>
             <span
-              className="text-[12px] font-medium tracking-wide"
+              className="text-[14px] font-medium tracking-wide"
               style={{ color: mood.color }}
             >
               {mood.label}
             </span>
+            {placeName && (
+              <span className="ml-auto text-[12px] tracking-wide text-white/25">
+                {placeName}
+              </span>
+            )}
           </div>
         )}
-        <p className="whitespace-pre-line text-[14px] leading-[1.8] tracking-wide text-white/80">
+        <p className="whitespace-pre-line text-[15px] leading-[1.8] tracking-wide text-white/80">
           {story.content}
         </p>
         <div className="flex items-center justify-between gap-6">
-          <p className="text-[11px] tracking-wide text-white/30">
+          <p className="text-[13px] tracking-wide text-white/30">
             {new Date(story.created_at).toLocaleDateString("ko-KR")}
           </p>
           {authorName && (
-            <p className="text-[11px] tracking-wide text-white/40">
-              {authorName}
-            </p>
+            isAnonymousAuthor ? (
+              <p className="text-[13px] tracking-wide text-white/40">
+                {authorName}
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onAuthorClick(story.author_id!, authorName)}
+                className="cursor-pointer text-[13px] tracking-wide text-white/40 underline underline-offset-2 transition-colors hover:text-white/60"
+              >
+                {authorName}
+              </button>
+            )
           )}
+        </div>
+
+        {/* 공명 */}
+        <div className="border-t border-white/10 pt-2.5">
+          <button
+            type="button"
+            onClick={handleResonanceClick}
+            disabled={isOwnStory}
+            className={`flex items-center gap-1.5 transition-opacity ${
+              isOwnStory ? "cursor-default opacity-30" : "cursor-pointer hover:opacity-80"
+            }`}
+          >
+            <span className="text-base">{resonance?.resonated ? "💜" : "🤍"}</span>
+            <span className={`text-[14px] tracking-wide ${resonance?.resonated ? "text-violet-400" : "text-white/30"}`}>
+              {resonance?.count ?? 0}
+            </span>
+          </button>
         </div>
       </div>
     </Popup>

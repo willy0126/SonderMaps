@@ -16,6 +16,8 @@ import { StoryMarker } from "./story-marker"
 import { ClusterMarker } from "./cluster-marker"
 import { StoryPopup } from "./story-popup"
 import { StoryForm } from "./story-form"
+import { SearchBar } from "./search-bar"
+import { AuthorStoriesModal } from "./author-stories-modal"
 import type { Story } from "@/types/story"
 import { useQueryClient } from "@tanstack/react-query"
 import "mapbox-gl/dist/mapbox-gl.css"
@@ -29,6 +31,7 @@ export function MapView() {
   const [formPosition, setFormPosition] = useState<{ lng: number; lat: number } | null>(null)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
+  const [authorModal, setAuthorModal] = useState<{ id: string; name: string } | null>(null)
 
   // 줌 레벨에 따라 검색 반경 동적 조정
   const zoom = viewState.zoom ?? 12
@@ -213,6 +216,11 @@ export function MapView() {
         <StoryPopup
           story={selectedStory}
           onClose={() => setSelectedStory(null)}
+          onAuthRequired={() => setShowAuthPrompt(true)}
+          onAuthorClick={(authorId, authorName) => {
+            setSelectedStory(null)
+            setAuthorModal({ id: authorId, name: authorName })
+          }}
         />
       )}
 
@@ -229,6 +237,25 @@ export function MapView() {
       )}
 
     </Map>
+    {authorModal && (
+      <AuthorStoriesModal
+        authorId={authorModal.id}
+        authorName={authorModal.name}
+        onClose={() => setAuthorModal(null)}
+        onStoryClick={(story) => {
+          setAuthorModal(null)
+          setSelectedStory(story)
+          mapRef.current?.flyTo({
+            center: [story.longitude, story.latitude],
+            zoom: 15,
+            duration: 1200,
+          })
+        }}
+      />
+    )}
+    <SearchBar onSelect={(lng, lat) => {
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 })
+    }} />
     <AuthPrompt show={showAuthPrompt} onClose={() => setShowAuthPrompt(false)} />
     </>
   )

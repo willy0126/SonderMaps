@@ -81,15 +81,15 @@ export function StoryForm({ longitude, latitude, onClose, onSuccess }: StoryForm
               key={m.key}
               type="button"
               onClick={() => setMood(m.key)}
-              className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-all ${
+              className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border px-3 py-2 text-[12px] transition-all ${
                 mood === m.key
                   ? "border-white/30 bg-white/10"
                   : "border-white/10 bg-transparent hover:border-white/20"
               }`}
             >
-              <span>{m.emoji}</span>
+              <span className="text-lg">{m.emoji}</span>
               <span
-                className="tracking-wide"
+                className="text-[11px] tracking-wide"
                 style={{ color: mood === m.key ? m.color : "rgba(255,255,255,0.5)" }}
               >
                 {m.label}
