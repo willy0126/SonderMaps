@@ -1,16 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import Link from "next/link"
 import { Map } from "react-map-gl/mapbox"
-import type { MapMouseEvent } from "react-map-gl/mapbox"
+import type { MapMouseEvent, MapRef } from "react-map-gl/mapbox"
 import { MAPBOX_TOKEN, DEFAULT_MAP_CONFIG } from "@/lib/mapbox/config"
 import { useMapStore } from "@/stores/map-store"
 import { useNearbyStories } from "@/hooks/use-nearby-stories"
+import { useStoryClusters } from "@/hooks/use-story-clusters"
+import type { ClusterPoint } from "@/hooks/use-story-clusters"
 import { createClient } from "@/lib/supabase/client"
 import { SEOUL_BOUNDS } from "@/components/landing/explore-data"
 import { SEOUL_MASK, SEOUL_BORDER } from "@/components/landing/seoul-boundary"
 import { StoryMarker } from "./story-marker"
+import { ClusterMarker } from "./cluster-marker"
 import { StoryPopup } from "./story-popup"
 import { StoryForm } from "./story-form"
 import type { Story } from "@/types/story"
@@ -18,19 +21,43 @@ import { useQueryClient } from "@tanstack/react-query"
 import "mapbox-gl/dist/mapbox-gl.css"
 
 export function MapView() {
+  const mapRef = useRef<MapRef>(null)
   const queryClient = useQueryClient()
   const { viewState, setViewState } = useMapStore()
 
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [formPosition, setFormPosition] = useState<{ lng: number; lat: number } | null>(null)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
+  const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
+
+  // 줌 레벨에 따라 검색 반경 동적 조정
+  const zoom = viewState.zoom ?? 12
+  const radiusKm = Math.min(50, 40000 / Math.pow(2, zoom))
 
   const { data: stories = [] } = useNearbyStories({
     latitude: viewState.latitude,
     longitude: viewState.longitude,
-    radius_km: 10,
-    limit: 100,
+    radius_km: radiusKm,
+    limit: 200,
   })
+
+  const clusterPoints = useStoryClusters(stories, zoom, mapBounds)
+
+  const updateBounds = useCallback(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const b = map.getBounds()
+    if (!b) return
+    setMapBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()])
+  }, [])
+
+  const handleClusterClick = useCallback((cluster: ClusterPoint) => {
+    mapRef.current?.flyTo({
+      center: [cluster.longitude, cluster.latitude],
+      zoom: cluster.expansionZoom,
+      duration: 500,
+    })
+  }, [])
 
   const handleMapClick = async (e: MapMouseEvent) => {
     // 팝업/마커가 아닌 빈 영역 클릭 시
@@ -144,8 +171,12 @@ export function MapView() {
   return (
     <>
     <Map
+      ref={mapRef}
       {...viewState}
-      onMove={(evt) => setViewState(evt.viewState)}
+      onMove={(evt) => {
+        setViewState(evt.viewState)
+        updateBounds()
+      }}
       mapboxAccessToken={MAPBOX_TOKEN}
       mapStyle={DEFAULT_MAP_CONFIG.mapStyle}
       style={{ width: "100%", height: "100%" }}
@@ -153,19 +184,30 @@ export function MapView() {
       attributionControl={false}
       dragRotate={false}
       pitchWithRotate={false}
-      onLoad={handleMapLoad}
+      onLoad={(e) => {
+        handleMapLoad(e)
+        updateBounds()
+      }}
       onClick={handleMapClick}
     >
-      {stories.map((story) => (
-        <StoryMarker
-          key={story.id}
-          story={story}
-          onClick={(s) => {
-            setFormPosition(null)
-            setSelectedStory(s)
-          }}
-        />
-      ))}
+      {clusterPoints.map((point) =>
+        point.type === "cluster" ? (
+          <ClusterMarker
+            key={`cluster-${point.id}`}
+            cluster={point}
+            onClick={handleClusterClick}
+          />
+        ) : (
+          <StoryMarker
+            key={point.story.id}
+            story={point.story}
+            onClick={(s) => {
+              setFormPosition(null)
+              setSelectedStory(s)
+            }}
+          />
+        )
+      )}
 
       {selectedStory && (
         <StoryPopup
