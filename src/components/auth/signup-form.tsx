@@ -46,10 +46,13 @@ export function SignupForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
   })
+
+  const watchPassword = watch("password", "")
 
   async function onSubmit(data: SignupFormData) {
     setServerError(null)
@@ -138,7 +141,7 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="signup-email" className="text-white/70">
           이메일
@@ -166,6 +169,25 @@ export function SignupForm() {
           className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
           {...register("password")}
         />
+        {watchPassword.length > 0 && (
+          <ul className="space-y-1 pt-1">
+            {[
+              { test: watchPassword.length >= 8, label: "8자 이상" },
+              { test: /[a-z]/.test(watchPassword), label: "소문자 포함" },
+              { test: /[0-9]/.test(watchPassword), label: "숫자 포함" },
+              { test: /[^a-zA-Z0-9]/.test(watchPassword), label: "특수문자 포함" },
+            ].map((rule) => (
+              <li key={rule.label} className="flex items-center gap-1.5 text-[11px]">
+                <span className={rule.test ? "text-emerald-400" : "text-white/25"}>
+                  {rule.test ? "✓" : "○"}
+                </span>
+                <span className={rule.test ? "text-white/50" : "text-white/25"}>
+                  {rule.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         {errors.password && (
           <p className="text-xs text-red-400">{errors.password.message}</p>
         )}
