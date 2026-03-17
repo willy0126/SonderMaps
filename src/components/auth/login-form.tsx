@@ -44,8 +44,8 @@ export function LoginForm() {
       return
     }
 
-    router.refresh()
     router.push("/map")
+    router.refresh()
   }
 
   return (

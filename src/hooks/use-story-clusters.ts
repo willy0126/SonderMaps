@@ -49,14 +49,14 @@ export function useStoryClusters(stories: Story[], zoom: number, bounds?: [numbe
       const [lng, lat] = feature.geometry.coordinates
       const props = feature.properties
 
-      if (props.cluster) {
+      if ("cluster" in props && props.cluster) {
         return {
           type: "cluster" as const,
-          id: props.cluster_id,
+          id: props.cluster_id as number,
           longitude: lng,
           latitude: lat,
-          count: props.point_count,
-          expansionZoom: index.getClusterExpansionZoom(props.cluster_id),
+          count: props.point_count as number,
+          expansionZoom: index.getClusterExpansionZoom(props.cluster_id as number),
         }
       }
 

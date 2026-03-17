@@ -2,10 +2,18 @@
 
 import { useRef, useState, useEffect } from "react"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 export function CtaSection() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
 
   useEffect(() => {
     const el = sectionRef.current
@@ -51,13 +59,13 @@ export function CtaSection() {
 
         {/* CTA Button */}
         <Link
-          href="/auth"
+          href={user ? "/map" : "/auth"}
           className={`mt-12 inline-block rounded-full bg-neutral-200 px-8 py-3 text-sm font-medium text-neutral-950 transition-colors duration-300 hover:bg-neutral-300 md:text-base ${
             visible ? "animate-fade-in-up" : "opacity-0"
           }`}
           style={{ animationDuration: "1s", animationDelay: "0.8s" }}
         >
-          시작하기
+          {user ? "지도 보기" : "시작하기"}
         </Link>
       </div>
 

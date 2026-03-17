@@ -30,6 +30,7 @@ export default function MyPage() {
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState("")
   const [savingName, setSavingName] = useState(false)
+  const [nameError, setNameError] = useState<string | null>(null)
 
   // 비밀번호 재설정
   const [showPwModal, setShowPwModal] = useState(false)
@@ -79,9 +80,33 @@ export default function MyPage() {
 
   async function saveName() {
     if (!user || !nameInput.trim()) return
+    setNameError(null)
     setSavingName(true)
-    await supabase.from("profiles").update({ username: nameInput.trim() }).eq("id", user.id)
-    setProfile((prev) => prev ? { ...prev, username: nameInput.trim() } : prev)
+
+    const trimmed = nameInput.trim()
+
+    // 중복 확인
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", trimmed)
+      .neq("id", user.id)
+      .maybeSingle()
+
+    if (existing) {
+      setNameError("이미 있는 닉네임입니다")
+      setSavingName(false)
+      return
+    }
+
+    const { error } = await supabase.from("profiles").update({ username: trimmed }).eq("id", user.id)
+    if (error) {
+      setNameError("변경에 실패했습니다")
+      setSavingName(false)
+      return
+    }
+
+    setProfile((prev) => prev ? { ...prev, username: trimmed } : prev)
     setEditingName(false)
     setSavingName(false)
   }
@@ -98,10 +123,19 @@ export default function MyPage() {
     setTimeout(() => { setShowPwModal(false); setPwSuccess(false); setNewPw(""); setConfirmPw("") }, 1500)
   }
 
+  const [anonError, setAnonError] = useState<string | null>(null)
+
   async function toggleAnonymous() {
     if (!user || !profile) return
+    setAnonError(null)
     const next = !profile.is_anonymous
-    await supabase.from("profiles").update({ is_anonymous: next }).eq("id", user.id)
+    // 익명 모드를 끄려면 닉네임이 설정되어 있어야 함
+    if (!next && !profile.username) {
+      setAnonError("닉네임을 먼저 설정해주세요")
+      return
+    }
+    const { error } = await supabase.from("profiles").update({ is_anonymous: next }).eq("id", user.id)
+    if (error) return
     setProfile({ ...profile, is_anonymous: next })
   }
 
@@ -126,8 +160,8 @@ export default function MyPage() {
   async function handleLogout() {
     setLoggingOut(true)
     await supabase.auth.signOut()
-    router.refresh()
     router.push("/auth")
+    router.refresh()
   }
 
   // — 차트 데이터 —
@@ -168,31 +202,36 @@ export default function MyPage() {
           <h2 className="text-[13px] font-medium uppercase tracking-widest text-white/30">프로필</h2>
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
             {/* 닉네임 */}
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-white/50">닉네임</span>
-              {editingName ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    maxLength={20}
-                    className="w-36 rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[13px] text-white/80 focus:border-white/30 focus:outline-none"
-                    autoFocus
-                  />
-                  <button type="button" onClick={saveName} disabled={savingName} className="cursor-pointer text-white/50 hover:text-white/80">
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button type="button" onClick={() => { setEditingName(false); setNameInput(profile?.username ?? "") }} className="cursor-pointer text-white/50 hover:text-white/80">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-white/80">{profile?.username || "미설정"}</span>
-                  <button type="button" onClick={() => setEditingName(true)} className="cursor-pointer text-white/30 hover:text-white/60">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-white/50">닉네임</span>
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={nameInput}
+                      onChange={(e) => { setNameInput(e.target.value); setNameError(null) }}
+                      maxLength={20}
+                      className="w-36 rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[13px] text-white/80 focus:border-white/30 focus:outline-none"
+                      autoFocus
+                    />
+                    <button type="button" onClick={saveName} disabled={savingName} className="cursor-pointer text-white/50 hover:text-white/80">
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => { setEditingName(false); setNameInput(profile?.username ?? ""); setNameError(null) }} className="cursor-pointer text-white/50 hover:text-white/80">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px] text-white/80">{profile?.username || "미설정"}</span>
+                    <button type="button" onClick={() => setEditingName(true)} className="cursor-pointer text-white/30 hover:text-white/60">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              {nameError && (
+                <p className="mt-1 text-right text-[12px] text-red-400">{nameError}</p>
               )}
             </div>
 
@@ -336,16 +375,19 @@ export default function MyPage() {
               <button
                 type="button"
                 onClick={toggleAnonymous}
-                className={`relative h-6 w-11 cursor-pointer rounded-full transition-colors ${
-                  profile?.is_anonymous ? "bg-violet-500/60" : "bg-white/15"
+                className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
+                  profile?.is_anonymous ? "bg-violet-500" : "bg-white/20"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    profile?.is_anonymous ? "translate-x-5.5" : "translate-x-0.5"
+                  className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                    profile?.is_anonymous ? "translate-x-5" : "translate-x-0"
                   }`}
                 />
               </button>
+            {anonError && (
+              <p className="mt-2 text-[12px] text-red-400">{anonError}</p>
+            )}
             </div>
           </div>
         </section>

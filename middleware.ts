@@ -32,7 +32,25 @@ export default async function middleware(request: NextRequest) {
   )
 
   // 토큰 갱신 — 이 호출이 만료된 세션을 자동 갱신함
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+
+  // 비인증 사용자 → 보호된 라우트 접근 시 /auth로 리다이렉트
+  if (!user && (path.startsWith("/map") || path.startsWith("/my-page"))) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/auth"
+    return NextResponse.redirect(url)
+  }
+
+  // 인증된 사용자 → /auth 접근 시 /map으로 리다이렉트
+  if (user && path.startsWith("/auth")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/map"
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }

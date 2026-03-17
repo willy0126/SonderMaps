@@ -4,15 +4,23 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import type { User } from "@supabase/supabase-js"
 
 export function Navbar() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
 
   const handleLogoClick = (e: React.MouseEvent) => {
@@ -68,10 +76,10 @@ export function Navbar() {
 
       {/* 우측 CTA */}
       <Link
-        href="/auth"
+        href={user ? "/map" : "/auth"}
         className="rounded-full bg-white/20 px-5 py-2 text-sm font-medium text-white/90 transition-colors hover:bg-white/50"
       >
-        시작하기
+        {user ? "지도 보기" : "시작하기"}
       </Link>
       </div>
     </nav>

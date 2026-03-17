@@ -22,8 +22,8 @@ export function UserMenu() {
     setLoggingOut(true)
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.refresh()
     router.push("/auth")
+    router.refresh()
   }
 
   return (
