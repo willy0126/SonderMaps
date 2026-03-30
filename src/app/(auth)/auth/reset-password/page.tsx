@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { PASSWORD_RULES, validatePassword } from "@/lib/validations/auth"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -49,8 +50,9 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setError(null)
 
-    if (newPw.length < 8) {
-      setError("비밀번호는 최소 8자 이상이어야 합니다")
+    const ruleError = validatePassword(newPw)
+    if (ruleError) {
+      setError(`비밀번호 요구사항을 충족해주세요: ${ruleError}`)
       return
     }
     if (newPw !== confirmPw) {
@@ -123,6 +125,23 @@ export default function ResetPasswordPage() {
             onChange={(e) => { setNewPw(e.target.value); setError(null) }}
             className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
           />
+          {newPw.length > 0 && (
+            <ul className="space-y-1 pt-1">
+              {PASSWORD_RULES.map((rule) => {
+                const passed = rule.test(newPw)
+                return (
+                  <li key={rule.label} className="flex items-center gap-1.5 text-[11px]">
+                    <span className={passed ? "text-emerald-400" : "text-white/25"}>
+                      {passed ? "✓" : "○"}
+                    </span>
+                    <span className={passed ? "text-white/50" : "text-white/25"}>
+                      {rule.label}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
 
         <div className="space-y-2">
