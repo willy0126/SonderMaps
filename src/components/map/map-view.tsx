@@ -35,6 +35,8 @@ function isInsideSeoul(lng: number, lat: number): boolean {
   return inside
 }
 
+const PIN_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='26' viewBox='0 0 28 36'%3E%3Cpath d='M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z' fill='%23f87171' fill-opacity='0.65'/%3E%3Ccircle cx='14' cy='14' r='6' fill='%230a0a0a' fill-opacity='0.9'/%3E%3C/svg%3E") 7 18, crosshair`
+
 export function MapView() {
   const mapRef = useRef<MapRef>(null)
   const queryClient = useQueryClient()
@@ -45,6 +47,7 @@ export function MapView() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
   const [authorModal, setAuthorModal] = useState<{ id: string; name: string } | null>(null)
+  const [mapCursor, setMapCursor] = useState<string>("default")
 
   // 줌 레벨에 따라 검색 반경 동적 조정
   const zoom = viewState.zoom ?? 12
@@ -206,6 +209,10 @@ export function MapView() {
       onLoad={(e) => {
         handleMapLoad(e)
         updateBounds()
+      }}
+      cursor={mapCursor}
+      onMouseMove={(e) => {
+        setMapCursor(isInsideSeoul(e.lngLat.lng, e.lngLat.lat) ? PIN_CURSOR : "default")
       }}
       onClick={handleMapClick}
     >
