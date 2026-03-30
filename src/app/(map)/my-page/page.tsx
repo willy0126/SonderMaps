@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import { MAPBOX_TOKEN } from "@/lib/mapbox/config"
 import { ArrowLeft, LogOut, Pencil, Check, X, Trash2 } from "lucide-react"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import type { User } from "@supabase/supabase-js"
@@ -44,6 +45,9 @@ export default function MyPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
 
+  // 위치 이름 캐시
+  const [placeNames, setPlaceNames] = useState<Record<string, string>>({})
+
   // 로그아웃
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -75,6 +79,34 @@ export default function MyPage() {
     }
     load()
   }, [])
+
+  // 스토리 위치 역지오코딩
+  useEffect(() => {
+    if (stories.length === 0) return
+    stories.forEach((story) => {
+      const key = story.id
+      if (placeNames[key]) return
+      fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${story.longitude},${story.latitude}.json?access_token=${MAPBOX_TOKEN}&language=ko&types=poi,address,neighborhood&limit=1`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const feature = data.features?.[0]
+          if (!feature) return
+          const neighborhood = feature.context?.find((c: { id: string }) => c.id.startsWith("neighborhood"))
+          let name: string
+          if (feature.place_type?.[0] === "neighborhood") {
+            name = feature.text
+          } else if (neighborhood) {
+            name = `${feature.text} · ${neighborhood.text}`
+          } else {
+            name = feature.text
+          }
+          setPlaceNames((prev) => ({ ...prev, [key]: name }))
+        })
+        .catch(() => {})
+    })
+  }, [stories])
 
   // — 핸들러 —
 
@@ -305,7 +337,12 @@ export default function MyPage() {
                             {mood.label}
                           </span>
                         )}
-                        <span className="ml-auto text-[11px] text-white/25">
+                        {placeNames[story.id] && (
+                          <span className="text-[11px] tracking-wide text-white/25">
+                            {placeNames[story.id]}
+                          </span>
+                        )}
+                        <span className="ml-auto shrink-0 text-[11px] text-white/25">
                           {new Date(story.created_at).toLocaleDateString("ko-KR")}
                         </span>
                       </div>
