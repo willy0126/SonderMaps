@@ -11,7 +11,7 @@ import { useStoryClusters } from "@/hooks/use-story-clusters"
 import type { ClusterPoint } from "@/hooks/use-story-clusters"
 import { createClient } from "@/lib/supabase/client"
 import { SEOUL_BOUNDS } from "@/components/landing/explore-data"
-import { SEOUL_MASK, SEOUL_BORDER } from "@/components/landing/seoul-boundary"
+import { SEOUL_MASK, SEOUL_BORDER, SEOUL_COORDS } from "@/components/landing/seoul-boundary"
 import { StoryMarker } from "./story-marker"
 import { ClusterMarker } from "./cluster-marker"
 import { StoryPopup } from "./story-popup"
@@ -21,6 +21,19 @@ import { AuthorStoriesModal } from "./author-stories-modal"
 import type { Story } from "@/types/story"
 import { useQueryClient } from "@tanstack/react-query"
 import "mapbox-gl/dist/mapbox-gl.css"
+
+// Ray-casting point-in-polygon
+function isInsideSeoul(lng: number, lat: number): boolean {
+  let inside = false
+  for (let i = 0, j = SEOUL_COORDS.length - 1; i < SEOUL_COORDS.length; j = i++) {
+    const [xi, yi] = SEOUL_COORDS[i]
+    const [xj, yj] = SEOUL_COORDS[j]
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside
+    }
+  }
+  return inside
+}
 
 export function MapView() {
   const mapRef = useRef<MapRef>(null)
@@ -66,6 +79,9 @@ export function MapView() {
     // 팝업/마커가 아닌 빈 영역 클릭 시
     setSelectedStory(null)
     setFormPosition(null)
+
+    // 서울 경계 밖 클릭 무시
+    if (!isInsideSeoul(e.lngLat.lng, e.lngLat.lat)) return
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()

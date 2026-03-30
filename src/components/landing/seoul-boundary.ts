@@ -1,7 +1,7 @@
 import type { Feature, LineString, Polygon } from "geojson"
 
 // 서울특별시 경계 좌표 (OpenStreetMap 기반, Douglas-Peucker 단순화)
-const SEOUL_COORDS: [number, number][] = [
+export const SEOUL_COORDS: [number, number][] = [
   [126.7644, 37.5553],
   [126.7715, 37.5484],
   [126.7917, 37.5437],
