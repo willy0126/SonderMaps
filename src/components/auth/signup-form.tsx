@@ -14,6 +14,11 @@ const AUTH_ERROR_MAP: Record<string, string> = {
   "Email not confirmed": "이메일 인증이 필요합니다",
 }
 
+// 간단한 이메일 형식 체크
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 export function SignupForm() {
   const [serverError, setServerError] = useState<string | null>(null)
   const [sentEmail, setSentEmail] = useState<string | null>(null)
@@ -21,12 +26,40 @@ export function SignupForm() {
   const [resent, setResent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle")
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     return () => {
       if (cooldownRef.current) clearInterval(cooldownRef.current)
+      if (emailTimerRef.current) clearTimeout(emailTimerRef.current)
     }
   }, [])
+
+  // 이메일 입력 시 debounce로 중복 체크
+  function handleEmailChange(value: string) {
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current)
+
+    if (!value.trim()) {
+      setEmailStatus("idle")
+      return
+    }
+    if (!isValidEmail(value)) {
+      setEmailStatus("invalid")
+      return
+    }
+
+    setEmailStatus("checking")
+    emailTimerRef.current = setTimeout(async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc("check_email_exists", { email_input: value })
+      if (error) {
+        setEmailStatus("idle")
+        return
+      }
+      setEmailStatus(data ? "taken" : "available")
+    }, 500)
+  }
 
   function startCooldown() {
     setCooldown(60)
@@ -57,6 +90,14 @@ export function SignupForm() {
   async function onSubmit(data: SignupFormData) {
     setServerError(null)
     const supabase = createClient()
+
+    // 제출 시점에도 이메일 중복 체크 (클라이언트 우회 방어)
+    const { data: exists } = await supabase.rpc("check_email_exists", { email_input: data.email })
+    if (exists) {
+      setServerError("이미 가입된 이메일입니다.")
+      setEmailStatus("taken")
+      return
+    }
 
     const { error } = await supabase.auth.signUp({
       email: data.email,
@@ -151,11 +192,21 @@ export function SignupForm() {
           type="email"
           placeholder="name@example.com"
           className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-          {...register("email")}
+          {...register("email", {
+            onChange: (e) => handleEmailChange(e.target.value),
+          })}
         />
-        {errors.email && (
+        {errors.email ? (
           <p className="text-xs text-red-400">{errors.email.message}</p>
-        )}
+        ) : emailStatus === "checking" ? (
+          <p className="text-xs text-white/30">확인 중...</p>
+        ) : emailStatus === "invalid" ? (
+          <p className="text-xs text-red-400">올바르지 않은 이메일 형식입니다.</p>
+        ) : emailStatus === "taken" ? (
+          <p className="text-xs text-red-400">이미 가입된 이메일입니다.</p>
+        ) : emailStatus === "available" ? (
+          <p className="text-xs text-emerald-400">사용 가능한 이메일입니다.</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -217,7 +268,7 @@ export function SignupForm() {
 
       <Button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || emailStatus === "taken" || emailStatus === "invalid"}
         className="w-full bg-neutral-200 text-neutral-950 hover:bg-neutral-300"
       >
         {isSubmitting ? "가입 중..." : "회원가입"}
