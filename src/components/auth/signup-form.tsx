@@ -58,7 +58,7 @@ export function SignupForm() {
         return
       }
       setEmailStatus(data ? "taken" : "available")
-    }, 500)
+    }, 600)
   }
 
   function startCooldown() {
@@ -91,15 +91,7 @@ export function SignupForm() {
     setServerError(null)
     const supabase = createClient()
 
-    // 제출 시점에도 이메일 중복 체크 (클라이언트 우회 방어)
-    const { data: exists } = await supabase.rpc("check_email_exists", { email_input: data.email })
-    if (exists) {
-      setServerError("이미 가입된 이메일입니다.")
-      setEmailStatus("taken")
-      return
-    }
-
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -112,6 +104,13 @@ export function SignupForm() {
         AUTH_ERROR_MAP[error.message] ??
           "오류가 발생했습니다. 다시 시도해 주세요"
       )
+      return
+    }
+
+    // 이미 존재하는 이메일: Supabase는 에러 대신 빈 identities 반환
+    if (signUpData.user && signUpData.user.identities?.length === 0) {
+      setServerError("이미 가입된 이메일입니다.")
+      setEmailStatus("taken")
       return
     }
 
