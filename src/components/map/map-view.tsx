@@ -101,6 +101,9 @@ export function MapView() {
     const map = e.target
     map.setLanguage("ko")
 
+    // 휠 줌 속도 — 기본(1/450)의 1.5배
+    map.scrollZoom.setWheelZoomRate(1 / 300)
+
     // 지명/도로명 간소화 — 주요 라벨만 유지
     const hideLayers = [
       "poi-label",
@@ -203,6 +206,7 @@ export function MapView() {
       mapStyle={DEFAULT_MAP_CONFIG.mapStyle}
       style={{ width: "100%", height: "100%" }}
       maxBounds={SEOUL_BOUNDS}
+      maxZoom={14}
       attributionControl={false}
       dragRotate={false}
       pitchWithRotate={false}
@@ -280,7 +284,34 @@ export function MapView() {
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 })
     }} />
     <AuthPrompt show={showAuthPrompt} onClose={() => setShowAuthPrompt(false)} />
+    <ZoomIndicator zoom={zoom} />
     </>
+  )
+}
+
+const ZOOM_MIN = 10
+const ZOOM_MAX = 14
+
+function ZoomIndicator({ zoom }: { zoom: number }) {
+  const current = Math.round(zoom)
+  const levels = Array.from({ length: ZOOM_MAX - ZOOM_MIN + 1 }, (_, i) => ZOOM_MAX - i)
+
+  return (
+    <div className="fixed bottom-6 right-4 z-10 flex w-11 flex-col items-center gap-2.5 rounded-xl bg-black/50 py-5 backdrop-blur-sm select-none">
+      {levels.map((level) => {
+        const isActive = level === current
+        return (
+          <div
+            key={level}
+            className={`rounded-full transition-all duration-200 ${
+              isActive
+                ? "h-0.5 w-5 bg-red-500"
+                : "h-px w-3 bg-red-300/30"
+            }`}
+          />
+        )
+      })}
+    </div>
   )
 }
 
