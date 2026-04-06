@@ -29,7 +29,7 @@ export const LANDING_PINS: LandingPin[] = [
     emotion: LANDING_EMOTIONS.happy,
     location: "한강공원 반포지구",
     content:
-      "여기서 처음으로 손을 잡았다.\n아무 말도 필요 없었던 밤이었어.",
+      "여기서 그녀와 처음으로 손을 잡았다.\n아무 말도 필요 없었던 밤이었어.",
     resonance: 247,
     markerLabel: "",
   },
@@ -41,6 +41,16 @@ export const LANDING_PINS: LandingPin[] = [
     content:
       "같은 벤치에 혼자 앉았다.\n옆자리가 이렇게 넓었나.",
     resonance: 162,
+    markerLabel: "",
+  },
+  {
+    id: "pin-a3",
+    coords: [126.9315, 37.524],
+    emotion: LANDING_EMOTIONS.longing,
+    location: "한강공원 반포지구",
+    content:
+      "새벽 두 시, 다리 위 조명이 꺼지고 나서야\n이 도시가 잠든다는 걸 알았다.",
+    resonance: 89,
     markerLabel: "",
   },
 
@@ -65,6 +75,16 @@ export const LANDING_PINS: LandingPin[] = [
     resonance: 211,
     markerLabel: "",
   },
+  {
+    id: "pin-b3",
+    coords: [126.9228, 37.5498],
+    emotion: LANDING_EMOTIONS.sad,
+    location: "홍대 걷고싶은거리",
+    content:
+      "여기서 마지막으로 같이 걸었다.\n사람은 많은데 우리만 조용했어.",
+    resonance: 137,
+    markerLabel: "",
+  },
 
   // — 을지로 3가 —
   {
@@ -85,6 +105,16 @@ export const LANDING_PINS: LandingPin[] = [
     content:
       "할아버지 공방이 이 근처였는데.\n골목 냄새가 아직 그때 같다.",
     resonance: 78,
+    markerLabel: "",
+  },
+  {
+    id: "pin-c3",
+    coords: [127.0004, 37.566],
+    emotion: LANDING_EMOTIONS.nostalgic,
+    location: "을지로 3가",
+    content:
+      "대학 때 친구들이랑 숨어들던 인쇄소 골목.\n간판은 바뀌었는데 계단 삐걱거리는 소리는 그대로다.",
+    resonance: 115,
     markerLabel: "",
   },
 
@@ -178,15 +208,15 @@ export const LANDING_PINS: LandingPin[] = [
 ]
 
 export const LANDING_MAP_VIEW = {
-  longitude: 126.978,
-  latitude: 37.545,
-  zoom: 10.8,
+  longitude: 127.0,
+  latitude: 37.535,
+  zoom: 11,
 } as const
 
 // 서울특별시 영역 제한 (SW, NE)
 export const SEOUL_BOUNDS: [[number, number], [number, number]] = [
-  [126.75, 37.42],
-  [127.19, 37.71],
+  [126.55, 37.28],
+  [127.39, 37.85],
 ]
 
 // --- 위치 그룹 (캐러셀 팝업용) ---

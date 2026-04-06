@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -42,6 +43,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-fade-in-up: fade-in-up 0.6s ease-out both;
+  --animate-marker-pulse: marker-pulse 3.5s ease-out infinite backwards;
 }
 
 :root {
@@ -133,8 +137,13 @@
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes marker-pulse {
@@ -148,8 +157,16 @@
   }
 }
 
-.animate-marker-pulse {
-  animation: marker-pulse 3.5s ease-out infinite backwards;
+.noise-overlay::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
 
 .mapboxgl-ctrl-logo {
@@ -166,4 +183,48 @@
 
 .explore-popup .mapboxgl-popup-tip {
   display: none !important;
+}
+
+.story-popup .mapboxgl-popup-content {
+  background: rgba(23, 23, 23, 0.95) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.story-popup .mapboxgl-popup-close-button {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 18px;
+  right: 8px;
+  top: 8px;
+}
+
+.story-popup .mapboxgl-popup-close-button:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+}
+
+.story-popup .mapboxgl-popup-tip {
+  border-top-color: rgba(23, 23, 23, 0.95) !important;
+}
+
+/* 사이드바 스크롤바 */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  transition: background 0.7s ease;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
 }

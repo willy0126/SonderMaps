@@ -1,14 +1,13 @@
 "use client"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+import { LoginForm } from "@/components/auth/login-form"
+import { SignupForm } from "@/components/auth/signup-form"
 
 export default function AuthPage() {
   return (
     <div>
-      <div className="text-center">
+      <div className="animate-fade-in-up text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-white">
           시작하기
         </h1>
@@ -17,7 +16,7 @@ export default function AuthPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="login" className="mt-8">
+      <Tabs defaultValue="login" className="animate-fade-in-up mt-8" style={{ animationDelay: "0.15s" }}>
         <TabsList className="grid w-full grid-cols-2 bg-neutral-900">
           <TabsTrigger
             value="login"
@@ -33,81 +32,34 @@ export default function AuthPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Login */}
-        <TabsContent value="login" className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="login-email" className="text-white/70">
-              이메일
-            </Label>
-            <Input
-              id="login-email"
-              type="email"
-              placeholder="name@example.com"
-              className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="login-password" className="text-white/70">
-              비밀번호
-            </Label>
-            <Input
-              id="login-password"
-              type="password"
-              placeholder="••••••••"
-              className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-            />
-          </div>
-          <Button className="w-full bg-neutral-200 text-neutral-950 hover:bg-neutral-300">
-            로그인
-          </Button>
+        <TabsContent value="login" className="mt-6">
+          <LoginForm />
         </TabsContent>
 
-        {/* Signup */}
-        <TabsContent value="signup" className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="signup-email" className="text-white/70">
-              이메일
-            </Label>
-            <Input
-              id="signup-email"
-              type="email"
-              placeholder="name@example.com"
-              className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-password" className="text-white/70">
-              비밀번호
-            </Label>
-            <Input
-              id="signup-password"
-              type="password"
-              placeholder="••••••••"
-              className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-confirm" className="text-white/70">
-              비밀번호 확인
-            </Label>
-            <Input
-              id="signup-confirm"
-              type="password"
-              placeholder="••••••••"
-              className="border-white/10 bg-neutral-900 text-white placeholder:text-white/30"
-            />
-          </div>
-          <Button className="w-full bg-neutral-200 text-neutral-950 hover:bg-neutral-300">
-            회원가입
-          </Button>
+        <TabsContent value="signup" className="mt-6">
+          <SignupForm />
         </TabsContent>
       </Tabs>
 
-      <p className="mt-6 text-center text-[12px] text-white/30">
+      <p className="animate-fade-in-up mt-6 text-center text-[12px] text-white/30" style={{ animationDelay: "0.3s" }}>
         계속 진행하면{" "}
-        <span className="text-white/50 underline underline-offset-2">이용약관</span>
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white/50 underline underline-offset-2 transition-colors hover:text-white/70"
+        >
+          이용약관
+        </a>
         {" "}및{" "}
-        <span className="text-white/50 underline underline-offset-2">개인정보처리방침</span>
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white/50 underline underline-offset-2 transition-colors hover:text-white/70"
+        >
+          개인정보처리방침
+        </a>
         에 동의하는 것으로 간주됩니다.
       </p>
     </div>

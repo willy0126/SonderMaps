@@ -1,7 +1,7 @@
 import type { Feature, LineString, Polygon } from "geojson"
 
 // 서울특별시 경계 좌표 (OpenStreetMap 기반, Douglas-Peucker 단순화)
-const SEOUL_COORDS: [number, number][] = [
+export const SEOUL_COORDS: [number, number][] = [
   [126.7644, 37.5553],
   [126.7715, 37.5484],
   [126.7917, 37.5437],
@@ -106,7 +106,17 @@ const SEOUL_COORDS: [number, number][] = [
   [126.7644, 37.5553],
 ]
 
-// 서울 경계 라인 (블러 그라데이션용)
+// 서울 중심점 (버퍼 계산용)
+const CENTER: [number, number] = [126.978, 37.5665]
+
+// 경계를 중심에서 바깥으로 약간 확장 (마스킹이 경계 안쪽을 침범하지 않도록)
+const BUFFER = 1.01
+const SEOUL_COORDS_BUFFERED: [number, number][] = SEOUL_COORDS.map(([lng, lat]) => [
+  CENTER[0] + (lng - CENTER[0]) * BUFFER,
+  CENTER[1] + (lat - CENTER[1]) * BUFFER,
+])
+
+// 서울 경계 라인 (블러 그라데이션용) — 원본 좌표
 export const SEOUL_BORDER: Feature<LineString> = {
   type: "Feature",
   properties: {},
@@ -116,7 +126,7 @@ export const SEOUL_BORDER: Feature<LineString> = {
   },
 }
 
-// 서울 외부 마스킹 — SEOUL_COORDS 그대로 홀로 사용 (확장 없음)
+// 서울 외부 마스킹 — 버퍼 적용된 좌표 (경계 바깥에서만 마스킹)
 export const SEOUL_MASK: Feature<Polygon> = {
   type: "Feature",
   properties: {},
@@ -130,7 +140,7 @@ export const SEOUL_MASK: Feature<Polygon> = {
         [124, 39],
         [124, 36],
       ],
-      SEOUL_COORDS,
+      SEOUL_COORDS_BUFFERED,
     ],
   },
 }

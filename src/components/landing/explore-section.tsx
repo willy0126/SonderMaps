@@ -18,10 +18,22 @@ const ExploreMap = dynamic(
 export function ExploreSection() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
 
   useEffect(() => {
     const el = sectionRef.current
     if (!el) return
+
+    // 지도를 먼저 마운트하기 위해 더 넓은 rootMargin 사용
+    const preloadObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setMapReady(true)
+          preloadObserver.disconnect()
+        }
+      },
+      { rootMargin: "0px 0px 200px 0px" }
+    )
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -33,12 +45,16 @@ export function ExploreSection() {
       { rootMargin: "0px 0px -15% 0px" }
     )
 
+    preloadObserver.observe(el)
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      preloadObserver.disconnect()
+      observer.disconnect()
+    }
   }, [])
 
   return (
-    <section className="flex min-h-dvh flex-col items-center justify-center bg-neutral-950 px-6 py-24">
+    <section id="explore" className="scroll-mt-24 flex min-h-dvh flex-col items-center justify-center bg-neutral-950 px-6 py-24">
       <div ref={sectionRef} className="w-full max-w-4xl">
         {/* Eyebrow */}
         <p
@@ -64,12 +80,12 @@ export function ExploreSection() {
 
         {/* Map container */}
         <div
-          className={`relative mt-14 aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[#1e1e1e] shadow-[0_40px_80px_rgba(0,0,0,0.6)] ${
+          className={`relative mt-14 aspect-4/3 w-full overflow-hidden rounded-2xl border border-[#1e1e1e] shadow-[0_40px_80px_rgba(0,0,0,0.6)] ${
             visible ? "animate-fade-in-up" : "opacity-0"
           }`}
           style={{ animationDuration: "1.2s", animationDelay: "1.6s" }}
         >
-          {visible && <ExploreMap />}
+          {mapReady && <ExploreMap />}
 
           {/* Hint overlay */}
           <div className="pointer-events-none absolute bottom-0 right-0 px-4 py-3 text-right">

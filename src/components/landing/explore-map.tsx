@@ -58,7 +58,9 @@ export function ExploreMap() {
     }
 
     // 배경색 — 섹션 배경(neutral-950)과 통일
-    map.setPaintProperty("background", "background-color", "#0a0a0a")
+    if (map.getLayer("background")) {
+      map.setPaintProperty("background", "background-color", "#0a0a0a")
+    }
 
     // 물(한강 등) — 어두운 네이비 블루
     if (map.getLayer("water")) {
