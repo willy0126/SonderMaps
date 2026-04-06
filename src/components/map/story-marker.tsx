@@ -13,9 +13,10 @@ const MOOD_CONFIG = {
 interface StoryMarkerProps {
   story: Story
   onClick: (story: Story) => void
+  fading?: boolean
 }
 
-export function StoryMarker({ story, onClick }: StoryMarkerProps) {
+export function StoryMarker({ story, onClick, fading }: StoryMarkerProps) {
   const mood = story.mood && MOOD_CONFIG[story.mood]
   const color = mood?.color ?? "#ffffff"
 
@@ -29,7 +30,10 @@ export function StoryMarker({ story, onClick }: StoryMarkerProps) {
         onClick(story)
       }}
     >
-      <div className="group relative flex cursor-pointer flex-col items-center">
+      <div
+        className="group relative flex cursor-pointer flex-col items-center transition-opacity duration-1000"
+        style={{ opacity: fading ? 0 : 1 }}
+      >
         <div className="relative flex h-9 w-9 items-center justify-center">
           <span
             className="animate-marker-pulse absolute h-9 w-9 rounded-full"

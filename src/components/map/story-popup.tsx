@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Popup } from "react-map-gl/mapbox"
+import { Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MAPBOX_TOKEN } from "@/lib/mapbox/config"
 import { useStoryResonance } from "@/hooks/use-story-resonance"
@@ -28,11 +29,12 @@ function generateAnonName(id: string): string {
 interface StoryPopupProps {
   story: Story
   onClose: () => void
+  onDelete: () => void
   onAuthRequired: () => void
   onAuthorClick: (authorId: string, authorName: string) => void
 }
 
-export function StoryPopup({ story, onClose, onAuthRequired, onAuthorClick }: StoryPopupProps) {
+export function StoryPopup({ story, onClose, onDelete, onAuthRequired, onAuthorClick }: StoryPopupProps) {
   const mood = story.mood && MOOD_CONFIG[story.mood]
   const [authorName, setAuthorName] = useState<string | null>(null)
   const [isAnonymousAuthor, setIsAnonymousAuthor] = useState(true)
@@ -40,13 +42,22 @@ export function StoryPopup({ story, onClose, onAuthRequired, onAuthorClick }: St
   const [placeName, setPlaceName] = useState<string | null>(null)
   const { data: resonance } = useStoryResonance(story.id)
   const { mutate: toggleResonance } = useToggleResonance()
+  const [deleteConfirming, setDeleteConfirming] = useState(false)
 
-  const isOwnStory = currentUserId === story.author_id
+  const isOwnStory = !!currentUserId && currentUserId === story.author_id
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
   }, [])
+
+  function handleDeleteClick() {
+    if (!deleteConfirming) {
+      setDeleteConfirming(true)
+      return
+    }
+    onDelete()
+  }
 
   function handleResonanceClick() {
     if (!currentUserId) {
@@ -147,8 +158,8 @@ export function StoryPopup({ story, onClose, onAuthRequired, onAuthorClick }: St
           )}
         </div>
 
-        {/* 공명 */}
-        <div className="border-t border-white/10 pt-2.5">
+        {/* 공명 + 삭제 */}
+        <div className="flex items-center justify-between border-t border-white/10 pt-2.5">
           <button
             type="button"
             onClick={handleResonanceClick}
@@ -162,6 +173,37 @@ export function StoryPopup({ story, onClose, onAuthRequired, onAuthorClick }: St
               {resonance?.count ?? 0}
             </span>
           </button>
+
+          {isOwnStory && (
+            <div className="flex items-center gap-2">
+              {deleteConfirming ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirming(false)}
+                    className="text-[12px] tracking-wide text-white/30 transition-colors hover:text-white/60"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    className="text-[12px] tracking-wide text-red-400 transition-colors hover:text-red-300"
+                  >
+                    삭제
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  className="flex items-center gap-1 text-[12px] tracking-wide text-white/20 transition-colors hover:text-white/50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Popup>

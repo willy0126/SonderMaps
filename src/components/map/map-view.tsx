@@ -20,7 +20,6 @@ import { SearchBar } from "./search-bar"
 import { AuthorStoriesModal } from "./author-stories-modal"
 import type { Story } from "@/types/story"
 import { useQueryClient } from "@tanstack/react-query"
-import "mapbox-gl/dist/mapbox-gl.css"
 
 // Ray-casting point-in-polygon
 function isInsideSeoul(lng: number, lat: number): boolean {
@@ -41,8 +40,8 @@ export function MapView() {
   const mapRef = useRef<MapRef>(null)
   const queryClient = useQueryClient()
   const { viewState, setViewState } = useMapStore()
-
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
+  const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null)
   const [formPosition, setFormPosition] = useState<{ lng: number; lat: number } | null>(null)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
@@ -69,6 +68,19 @@ export function MapView() {
     if (!b) return
     setMapBounds([b.getWest(), b.getSouth(), b.getEast(), b.getNorth()])
   }, [])
+
+  async function handleStoryDelete(storyId: string) {
+    setSelectedStory(null)
+    setDeletingStoryId(storyId)
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const supabase = createClient()
+      await supabase.from("stories").delete().eq("id", storyId)
+      await queryClient.invalidateQueries({ queryKey: ["stories", "nearby"] })
+    } finally {
+      setDeletingStoryId(null)
+    }
+  }
 
   const handleClusterClick = useCallback((cluster: ClusterPoint) => {
     mapRef.current?.flyTo({
@@ -231,6 +243,7 @@ export function MapView() {
           <StoryMarker
             key={point.story.id}
             story={point.story}
+            fading={deletingStoryId === point.story.id}
             onClick={(s) => {
               setFormPosition(null)
               setSelectedStory(s)
@@ -243,6 +256,7 @@ export function MapView() {
         <StoryPopup
           story={selectedStory}
           onClose={() => setSelectedStory(null)}
+          onDelete={() => handleStoryDelete(selectedStory.id)}
           onAuthRequired={() => setShowAuthPrompt(true)}
           onAuthorClick={(authorId, authorName) => {
             setSelectedStory(null)
