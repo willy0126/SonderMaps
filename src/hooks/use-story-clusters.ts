@@ -24,7 +24,7 @@ export function useStoryClusters(stories: Story[], zoom: number, bounds?: [numbe
   const index = useMemo(() => {
     const sc = new Supercluster<{ story: Story }>({
       radius: 60,
-      maxZoom: 18,
+      maxZoom: 13,
     })
 
     const points: Supercluster.PointFeature<{ story: Story }>[] = stories.map((story) => ({
