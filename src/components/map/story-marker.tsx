@@ -31,16 +31,16 @@ export function StoryMarker({ story, onClick, fading }: StoryMarkerProps) {
       }}
     >
       <div
-        className="group relative flex cursor-pointer flex-col items-center transition-opacity duration-1000"
+        className="group relative flex flex-col items-center transition-opacity duration-1000"
         style={{ opacity: fading ? 0 : 1 }}
       >
         <div className="relative flex h-9 w-9 items-center justify-center">
           <span
-            className="animate-marker-pulse absolute h-9 w-9 rounded-full"
+            className="animate-marker-pulse absolute h-9 w-9 rounded-full pointer-events-none"
             style={{ backgroundColor: color }}
           />
           <span
-            className="relative z-10 h-3.5 w-3.5 rounded-full border-2 border-[#0a0a0a] transition-transform duration-200 group-hover:scale-[1.3]"
+            className="relative z-10 h-3.5 w-3.5 cursor-pointer rounded-full border-2 border-[#0a0a0a] transition-transform duration-200 group-hover:scale-[1.3]"
             style={{ backgroundColor: color }}
           />
         </div>

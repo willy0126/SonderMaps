@@ -23,8 +23,8 @@ export type MapPoint = ClusterPoint | StoryPoint
 export function useStoryClusters(stories: Story[], zoom: number, bounds?: [number, number, number, number]) {
   const index = useMemo(() => {
     const sc = new Supercluster<{ story: Story }>({
-      radius: 60,
-      maxZoom: 13,
+      radius: 18,
+      maxZoom: 14,
     })
 
     const points: Supercluster.PointFeature<{ story: Story }>[] = stories.map((story) => ({
@@ -69,5 +69,9 @@ export function useStoryClusters(stories: Story[], zoom: number, bounds?: [numbe
     })
   }, [index, zoom, bounds])
 
-  return points
+  function getClusterStories(clusterId: number): Story[] {
+    return index.getLeaves(clusterId, Infinity).map((f) => f.properties.story)
+  }
+
+  return { points, getClusterStories }
 }
