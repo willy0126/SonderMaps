@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { Map } from "react-map-gl/mapbox"
 import type { MapMouseEvent, MapRef } from "react-map-gl/mapbox"
@@ -40,7 +40,7 @@ const PIN_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 export function MapView() {
   const mapRef = useRef<MapRef>(null)
   const queryClient = useQueryClient()
-  const { viewState, setViewState } = useMapStore()
+  const { viewState, setViewState, activeMoods, pendingFlyTo, setPendingFlyTo } = useMapStore()
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null)
   const [clusterStories, setClusterStories] = useState<Story[] | null>(null)
@@ -61,7 +61,24 @@ export function MapView() {
     limit: 200,
   })
 
-  const { points: clusterPoints, getClusterStories } = useStoryClusters(stories, zoom, mapBounds)
+  const filteredStories = activeMoods.size === 0
+    ? stories
+    : stories.filter((s) => s.mood && activeMoods.has(s.mood))
+
+  const { points: clusterPoints, getClusterStories } = useStoryClusters(filteredStories, zoom, mapBounds)
+
+  useEffect(() => {
+    if (!pendingFlyTo) return
+    mapRef.current?.flyTo({
+      center: [pendingFlyTo.longitude, pendingFlyTo.latitude],
+      zoom: 14,
+      duration: 1000,
+    })
+    setFormPosition(null)
+    setClusterStories(null)
+    setSelectedStory(pendingFlyTo)
+    setPendingFlyTo(null)
+  }, [pendingFlyTo])
 
   const updateBounds = useCallback(() => {
     const map = mapRef.current?.getMap()
