@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Popup } from "react-map-gl/mapbox"
-import { Trash2 } from "lucide-react"
+import { Trash2, PenLine } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { MAPBOX_TOKEN } from "@/lib/mapbox/config"
 import { useStoryResonance } from "@/hooks/use-story-resonance"
@@ -30,11 +30,12 @@ interface StoryPopupProps {
   story: Story
   onClose: () => void
   onDelete: () => void
+  onCreateHere: () => void
   onAuthRequired: () => void
   onAuthorClick: (authorId: string, authorName: string) => void
 }
 
-export function StoryPopup({ story, onClose, onDelete, onAuthRequired, onAuthorClick }: StoryPopupProps) {
+export function StoryPopup({ story, onClose, onDelete, onCreateHere, onAuthRequired, onAuthorClick }: StoryPopupProps) {
   const mood = story.mood && MOOD_CONFIG[story.mood]
   const [authorName, setAuthorName] = useState<string | null>(null)
   const [isAnonymousAuthor, setIsAnonymousAuthor] = useState(true)
@@ -174,7 +175,7 @@ export function StoryPopup({ story, onClose, onDelete, onAuthRequired, onAuthorC
             </span>
           </button>
 
-          {isOwnStory && (
+          {isOwnStory ? (
             <div className="flex items-center gap-2">
               {deleteConfirming ? (
                 <>
@@ -203,6 +204,15 @@ export function StoryPopup({ story, onClose, onDelete, onAuthRequired, onAuthorC
                 </button>
               )}
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onCreateHere}
+              className="flex items-center gap-1 text-[12px] tracking-wide text-white/25 transition-colors hover:text-white/60"
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              나도 이야기 남기기
+            </button>
           )}
         </div>
       </div>

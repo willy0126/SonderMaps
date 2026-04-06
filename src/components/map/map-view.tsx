@@ -18,6 +18,7 @@ import { StoryPopup } from "./story-popup"
 import { StoryForm } from "./story-form"
 import { SearchBar } from "./search-bar"
 import { AuthorStoriesModal } from "./author-stories-modal"
+import { ClusterStoryList } from "./cluster-story-list"
 import type { Story } from "@/types/story"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -42,6 +43,7 @@ export function MapView() {
   const { viewState, setViewState } = useMapStore()
   const [selectedStory, setSelectedStory] = useState<Story | null>(null)
   const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null)
+  const [clusterStories, setClusterStories] = useState<Story[] | null>(null)
   const [formPosition, setFormPosition] = useState<{ lng: number; lat: number } | null>(null)
   const [showAuthPrompt, setShowAuthPrompt] = useState(false)
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
@@ -59,7 +61,7 @@ export function MapView() {
     limit: 200,
   })
 
-  const clusterPoints = useStoryClusters(stories, zoom, mapBounds)
+  const { points: clusterPoints, getClusterStories } = useStoryClusters(stories, zoom, mapBounds)
 
   const updateBounds = useCallback(() => {
     const map = mapRef.current?.getMap()
@@ -83,17 +85,22 @@ export function MapView() {
   }
 
   const handleClusterClick = useCallback((cluster: ClusterPoint) => {
-    mapRef.current?.flyTo({
-      center: [cluster.longitude, cluster.latitude],
-      zoom: cluster.expansionZoom,
-      duration: 500,
-    })
-  }, [])
+    if (cluster.expansionZoom > 14) {
+      setClusterStories(getClusterStories(cluster.id))
+    } else {
+      mapRef.current?.flyTo({
+        center: [cluster.longitude, cluster.latitude],
+        zoom: cluster.expansionZoom,
+        duration: 500,
+      })
+    }
+  }, [getClusterStories])
 
   const handleMapClick = async (e: MapMouseEvent) => {
     // 팝업/마커가 아닌 빈 영역 클릭 시
     setSelectedStory(null)
     setFormPosition(null)
+    setClusterStories(null)
 
     // 서울 경계 밖 클릭 무시
     if (!isInsideSeoul(e.lngLat.lng, e.lngLat.lat)) return
@@ -246,6 +253,7 @@ export function MapView() {
             fading={deletingStoryId === point.story.id}
             onClick={(s) => {
               setFormPosition(null)
+              setClusterStories(null)
               setSelectedStory(s)
             }}
           />
@@ -257,6 +265,17 @@ export function MapView() {
           story={selectedStory}
           onClose={() => setSelectedStory(null)}
           onDelete={() => handleStoryDelete(selectedStory.id)}
+          onCreateHere={async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+              setShowAuthPrompt(true)
+              return
+            }
+            const { longitude, latitude } = selectedStory
+            setSelectedStory(null)
+            setFormPosition({ lng: longitude, lat: latitude })
+          }}
           onAuthRequired={() => setShowAuthPrompt(true)}
           onAuthorClick={(authorId, authorName) => {
             setSelectedStory(null)
@@ -278,6 +297,16 @@ export function MapView() {
       )}
 
     </Map>
+    {clusterStories && (
+      <ClusterStoryList
+        stories={clusterStories}
+        onSelect={(story) => {
+          setFormPosition(null)
+          setSelectedStory(story)
+        }}
+        onClose={() => setClusterStories(null)}
+      />
+    )}
     {authorModal && (
       <AuthorStoriesModal
         authorId={authorModal.id}
@@ -285,6 +314,7 @@ export function MapView() {
         onClose={() => setAuthorModal(null)}
         onStoryClick={(story) => {
           setAuthorModal(null)
+          setFormPosition(null)
           setSelectedStory(story)
           mapRef.current?.flyTo({
             center: [story.longitude, story.latitude],
