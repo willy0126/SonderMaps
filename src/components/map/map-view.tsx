@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import { LocateFixed } from "lucide-react"
 import Link from "next/link"
 import { Map } from "react-map-gl/mapbox"
 import type { MapMouseEvent, MapRef } from "react-map-gl/mapbox"
@@ -371,6 +372,9 @@ export function MapView() {
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 })
     }} />
     <AuthPrompt show={showAuthPrompt} onClose={() => setShowAuthPrompt(false)} />
+    <MyLocationButton onLocate={(lng, lat) => {
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 1200 })
+    }} />
     <ZoomIndicator zoom={zoom} />
     </>
   )
@@ -398,6 +402,66 @@ function ZoomIndicator({ zoom }: { zoom: number }) {
           />
         )
       })}
+    </div>
+  )
+}
+
+type MyLocationButtonProps = {
+  onLocate: (lng: number, lat: number) => void
+}
+
+function MyLocationButton({ onLocate }: MyLocationButtonProps) {
+  const [status, setStatus] = useState<"idle" | "loading" | "denied" | "outOfBounds">("idle")
+
+  function handleClick() {
+    if (!navigator.geolocation) return
+    setStatus("loading")
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { longitude, latitude } = pos.coords
+        const [[minLng, minLat], [maxLng, maxLat]] = SEOUL_BOUNDS
+        if (longitude < minLng || longitude > maxLng || latitude < minLat || latitude > maxLat) {
+          setStatus("outOfBounds")
+          setTimeout(() => setStatus("idle"), 3000)
+          return
+        }
+        setStatus("idle")
+        onLocate(longitude, latitude)
+      },
+      () => {
+        setStatus("denied")
+        setTimeout(() => setStatus("idle"), 3000)
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
+  }
+
+  const isError = status === "denied" || status === "outOfBounds"
+  const tooltip =
+    status === "denied" ? "위치 권한이 거부되었습니다" :
+    status === "outOfBounds" ? "서울 외 지역은 지원하지 않습니다" :
+    "내 위치로 이동"
+
+  return (
+    <div className="fixed bottom-29 right-4 z-10 flex flex-col items-end gap-1.5">
+      {isError && (
+        <div className="rounded-lg border border-white/10 bg-neutral-900/90 px-3 py-1.5 text-[12px] tracking-wide text-white/60 backdrop-blur-sm">
+          {tooltip}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={status === "loading"}
+        title={tooltip}
+        className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border backdrop-blur-sm transition-all disabled:cursor-not-allowed ${
+          isError
+            ? "border-red-500/40 bg-red-500/20 text-red-400"
+            : "border-white/10 bg-neutral-900/80 text-white/60 hover:bg-neutral-800 hover:text-white"
+        }`}
+      >
+        <LocateFixed className={`h-4 w-4 ${status === "loading" ? "animate-pulse" : ""}`} />
+      </button>
     </div>
   )
 }
