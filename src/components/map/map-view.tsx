@@ -90,7 +90,7 @@ export function MapView() {
       map.off("moveend", onMoveEnd)
     }
     map.on("moveend", onMoveEnd)
-  }, [pendingFlyTo, mapLoaded])
+  }, [pendingFlyTo, mapLoaded, setPendingFlyTo])
 
   const updateBounds = useCallback(() => {
     const map = mapRef.current?.getMap()

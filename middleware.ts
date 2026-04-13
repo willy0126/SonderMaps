@@ -38,8 +38,9 @@ export default async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  // 비인증 사용자 → 보호된 라우트 접근 시 /auth로 리다이렉트
-  if (!user && (path.startsWith("/map") || path.startsWith("/my-page"))) {
+  // 비인증 사용자 → /my-page 접근 시 /auth로 리다이렉트
+  // /map은 비로그인 열람 허용 (글 작성 시에만 로그인 요구)
+  if (!user && path.startsWith("/my-page")) {
     const url = request.nextUrl.clone()
     url.pathname = "/auth"
     return NextResponse.redirect(url)
