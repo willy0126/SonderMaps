@@ -32,20 +32,24 @@ export function SearchBar({ onSelect }: SearchBarProps) {
     if (timerRef.current) clearTimeout(timerRef.current)
 
     timerRef.current = setTimeout(async () => {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&bbox=${SEOUL_BBOX}&language=ko&limit=5&types=poi,address,neighborhood,locality`
+      try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&bbox=${SEOUL_BBOX}&language=ko&limit=5&types=poi,address,neighborhood,locality`
 
-      const res = await fetch(url)
-      if (!res.ok) return
+        const res = await fetch(url)
+        if (!res.ok) return
 
-      const data = await res.json()
-      setResults(
-        data.features.map((f: { id: string; place_name: string; center: [number, number] }) => ({
-          id: f.id,
-          place_name: f.place_name,
-          center: f.center,
-        }))
-      )
-      setOpen(true)
+        const data = await res.json()
+        setResults(
+          data.features.map((f: { id: string; place_name: string; center: [number, number] }) => ({
+            id: f.id,
+            place_name: f.place_name,
+            center: f.center,
+          }))
+        )
+        setOpen(true)
+      } catch {
+        // 네트워크 오류 시 검색 결과 미표시
+      }
     }, 300)
 
     return () => {

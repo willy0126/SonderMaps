@@ -50,32 +50,38 @@ export default function MyPage() {
 
   // 로그아웃
   const [loggingOut, setLoggingOut] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
-      const { data: { user: u } } = await supabase.auth.getUser()
-      if (!u) {
+      try {
+        const { data: { user: u } } = await supabase.auth.getUser()
+        if (!u) {
+          router.push("/auth")
+          return
+        }
+        setUser(u)
+
+        const { data: p } = await supabase
+          .from("profiles")
+          .select()
+          .eq("id", u.id)
+          .single()
+        setProfile(p)
+        setNameInput(p?.username ?? "")
+
+        const { data: s } = await supabase
+          .from("stories")
+          .select()
+          .eq("author_id", u.id)
+          .order("created_at", { ascending: false })
+        setStories(s ?? [])
+      } catch {
+        // 네트워크/인증 오류 시 로그인 페이지로 이동
         router.push("/auth")
-        return
+      } finally {
+        setLoading(false)
       }
-      setUser(u)
-
-      const { data: p } = await supabase
-        .from("profiles")
-        .select()
-        .eq("id", u.id)
-        .single()
-      setProfile(p)
-      setNameInput(p?.username ?? "")
-
-      const { data: s } = await supabase
-        .from("stories")
-        .select()
-        .eq("author_id", u.id)
-        .order("created_at", { ascending: false })
-      setStories(s ?? [])
-
-      setLoading(false)
     }
     load()
   }, [])
@@ -167,7 +173,10 @@ export default function MyPage() {
       return
     }
     const { error } = await supabase.from("profiles").update({ is_anonymous: next }).eq("id", user.id)
-    if (error) return
+    if (error) {
+      setAnonError("변경에 실패했습니다. 다시 시도해주세요.")
+      return
+    }
     setProfile({ ...profile, is_anonymous: next })
   }
 
@@ -182,18 +191,27 @@ export default function MyPage() {
   async function deleteSelected() {
     if (selectedIds.size === 0) return
     setDeleting(true)
+    setDeleteError(null)
     const ids = Array.from(selectedIds)
-    await supabase.from("stories").delete().in("id", ids)
-    setStories((prev) => prev.filter((s) => !selectedIds.has(s.id)))
-    setSelectedIds(new Set())
+    const { error } = await supabase.from("stories").delete().in("id", ids)
+    if (!error) {
+      setStories((prev) => prev.filter((s) => !selectedIds.has(s.id)))
+      setSelectedIds(new Set())
+    } else {
+      setDeleteError("삭제에 실패했습니다. 다시 시도해주세요.")
+    }
     setDeleting(false)
   }
 
   async function handleLogout() {
     setLoggingOut(true)
-    await supabase.auth.signOut()
-    router.push("/auth")
-    router.refresh()
+    try {
+      await supabase.auth.signOut()
+      router.push("/auth")
+      router.refresh()
+    } catch {
+      setLoggingOut(false)
+    }
   }
 
   // — 차트 데이터 —
@@ -305,6 +323,10 @@ export default function MyPage() {
               </button>
             )}
           </div>
+
+          {deleteError && (
+            <p className="text-[12px] text-red-400">{deleteError}</p>
+          )}
 
           {stories.length === 0 ? (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-10 text-center">

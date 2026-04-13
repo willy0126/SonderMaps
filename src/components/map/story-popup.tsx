@@ -85,7 +85,9 @@ export function StoryPopup({ story, onClose, onDelete, onCreateHere, onAuthRequi
           setPlaceName(feature.text)
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        // 역지오코딩 실패 시 위치명 미표시 (정상 fallback)
+      })
   }, [story.longitude, story.latitude])
 
   useEffect(() => {
@@ -105,6 +107,11 @@ export function StoryPopup({ story, onClose, onDelete, onCreateHere, onAuthRequi
           setAuthorName(data.username)
           setIsAnonymousAuthor(false)
         }
+      })
+      .catch(() => {
+        // 프로필 조회 실패 시 익명 이름으로 fallback
+        setAuthorName(generateAnonName(story.author_id!))
+        setIsAnonymousAuthor(true)
       })
   }, [story.author_id])
 

@@ -54,7 +54,7 @@ export function MapView() {
   const zoom = viewState.zoom ?? 12
   const radiusKm = Math.min(50, 40000 / Math.pow(2, zoom))
 
-  const { data: stories = [] } = useNearbyStories({
+  const { data: stories = [], isError: storiesError } = useNearbyStories({
     latitude: viewState.latitude,
     longitude: viewState.longitude,
     radius_km: radiusKm,
@@ -94,8 +94,10 @@ export function MapView() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000))
       const supabase = createClient()
-      await supabase.from("stories").delete().eq("id", storyId)
-      await queryClient.invalidateQueries({ queryKey: ["stories", "nearby"] })
+      const { error } = await supabase.from("stories").delete().eq("id", storyId)
+      if (!error) {
+        await queryClient.invalidateQueries({ queryKey: ["stories", "nearby"] })
+      }
     } finally {
       setDeletingStoryId(null)
     }
@@ -122,15 +124,19 @@ export function MapView() {
     // 서울 경계 밖 클릭 무시
     if (!isInsideSeoul(e.lngLat.lng, e.lngLat.lat)) return
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
+      if (!user) {
+        setShowAuthPrompt(true)
+        return
+      }
+
+      setFormPosition({ lng: e.lngLat.lng, lat: e.lngLat.lat })
+    } catch {
       setShowAuthPrompt(true)
-      return
     }
-
-    setFormPosition({ lng: e.lngLat.lng, lat: e.lngLat.lat })
   }
 
   const handleMapLoad = (e: { target: mapboxgl.Map }) => {
@@ -231,6 +237,13 @@ export function MapView() {
 
   return (
     <>
+    {storiesError && (
+      <div className="pointer-events-none absolute inset-x-0 top-4 z-50 flex justify-center">
+        <p className="rounded-lg bg-black/70 px-4 py-2 text-[12px] text-red-400">
+          이야기를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+        </p>
+      </div>
+    )}
     <Map
       ref={mapRef}
       {...viewState}
