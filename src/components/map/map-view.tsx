@@ -372,10 +372,12 @@ export function MapView() {
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 15, duration: 1200 })
     }} />
     <AuthPrompt show={showAuthPrompt} onClose={() => setShowAuthPrompt(false)} />
-    <MyLocationButton onLocate={(lng, lat) => {
-      mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 1200 })
-    }} />
-    <ZoomIndicator zoom={zoom} />
+    <div className="fixed bottom-6 right-4 z-10 flex flex-col items-center gap-2">
+      <MyLocationButton onLocate={(lng, lat) => {
+        mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 1200 })
+      }} />
+      <ZoomIndicator />
+    </div>
     </>
   )
 }
@@ -383,12 +385,13 @@ export function MapView() {
 const ZOOM_MIN = 10
 const ZOOM_MAX = 14
 
-function ZoomIndicator({ zoom }: { zoom: number }) {
+function ZoomIndicator() {
+  const zoom = useMapStore((s) => s.viewState.zoom ?? 12)
   const current = Math.round(zoom)
   const levels = Array.from({ length: ZOOM_MAX - ZOOM_MIN + 1 }, (_, i) => ZOOM_MAX - i)
 
   return (
-    <div className="fixed bottom-6 right-4 z-10 flex w-11 flex-col items-center gap-2.5 rounded-xl bg-black/50 py-5 backdrop-blur-sm select-none">
+    <div className="flex w-11 flex-col items-center gap-2.5 rounded-xl bg-black/50 py-5 backdrop-blur-sm select-none">
       {levels.map((level) => {
         const isActive = level === current
         return (
@@ -437,23 +440,31 @@ function MyLocationButton({ onLocate }: MyLocationButtonProps) {
   }
 
   const isError = status === "denied" || status === "outOfBounds"
-  const tooltip =
+  const [hovered, setHovered] = useState(false)
+
+  const label =
     status === "denied" ? "위치 권한이 거부되었습니다" :
     status === "outOfBounds" ? "서울 외 지역은 지원하지 않습니다" :
+    status === "loading" ? "위치 확인 중..." :
     "내 위치로 이동"
 
+  const showTooltip = hovered || isError
+
   return (
-    <div className="fixed bottom-29 right-4 z-10 flex flex-col items-end gap-1.5">
-      {isError && (
-        <div className="rounded-lg border border-white/10 bg-neutral-900/90 px-3 py-1.5 text-[12px] tracking-wide text-white/60 backdrop-blur-sm">
-          {tooltip}
+    <div className="relative">
+      {showTooltip && (
+        <div className={`absolute right-11 top-1/2 -translate-y-1/2 mr-2 rounded-lg border border-white/10 bg-neutral-900/90 px-3 py-1.5 text-[12px] tracking-wide backdrop-blur-sm whitespace-nowrap ${
+          isError ? "text-red-400/80" : "text-white/50"
+        }`}>
+          {label}
         </div>
       )}
       <button
         type="button"
         onClick={handleClick}
         disabled={status === "loading"}
-        title={tooltip}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border backdrop-blur-sm transition-all disabled:cursor-not-allowed ${
           isError
             ? "border-red-500/40 bg-red-500/20 text-red-400"
