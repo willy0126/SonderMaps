@@ -49,6 +49,7 @@ export function MapView() {
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | undefined>()
   const [authorModal, setAuthorModal] = useState<{ id: string; name: string } | null>(null)
   const [mapCursor, setMapCursor] = useState<string>("default")
+  const [mapLoaded, setMapLoaded] = useState(false)
 
   // 줌 레벨에 따라 검색 반경 동적 조정
   const zoom = viewState.zoom ?? 12
@@ -68,17 +69,28 @@ export function MapView() {
   const { points: clusterPoints, getClusterStories } = useStoryClusters(filteredStories, zoom, mapBounds)
 
   useEffect(() => {
-    if (!pendingFlyTo) return
-    mapRef.current?.flyTo({
-      center: [pendingFlyTo.longitude, pendingFlyTo.latitude],
-      zoom: 14,
-      duration: 1000,
-    })
+    if (!pendingFlyTo || !mapLoaded) return
+    const map = mapRef.current?.getMap()
+    if (!map) return
+
     setFormPosition(null)
     setClusterStories(null)
-    setSelectedStory(pendingFlyTo)
     setPendingFlyTo(null)
-  }, [pendingFlyTo])
+
+    const story = pendingFlyTo
+
+    map.flyTo({
+      center: [story.longitude, story.latitude],
+      zoom: 14,
+      duration: 1200,
+    })
+
+    const onMoveEnd = () => {
+      setSelectedStory(story)
+      map.off("moveend", onMoveEnd)
+    }
+    map.on("moveend", onMoveEnd)
+  }, [pendingFlyTo, mapLoaded])
 
   const updateBounds = useCallback(() => {
     const map = mapRef.current?.getMap()
@@ -262,6 +274,7 @@ export function MapView() {
       onLoad={(e) => {
         handleMapLoad(e)
         updateBounds()
+        setMapLoaded(true)
       }}
       cursor={mapCursor}
       onMouseMove={(e) => {
