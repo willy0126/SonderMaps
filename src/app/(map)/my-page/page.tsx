@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { MAPBOX_TOKEN } from "@/lib/mapbox/config"
-import { ArrowLeft, LogOut, Pencil, Check, X, Trash2 } from "lucide-react"
+import { ArrowLeft, LogOut, Pencil, Check, X, Trash2, MapPin } from "lucide-react"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import type { User } from "@supabase/supabase-js"
 import type { Profile } from "@/types/profile"
 import type { Story, StoryMood } from "@/types/story"
+import { useMapStore } from "@/stores/map-store"
 
 const MOOD_CONFIG: Record<StoryMood, { label: string; emoji: string; color: string }> = {
   happy: { label: "기쁨", emoji: "😊", color: "#f6c944" },
@@ -21,6 +22,7 @@ const MOOD_CONFIG: Record<StoryMood, { label: string; emoji: string; color: stri
 export default function MyPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { setPendingFlyTo } = useMapStore()
 
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -50,32 +52,38 @@ export default function MyPage() {
 
   // 로그아웃
   const [loggingOut, setLoggingOut] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
-      const { data: { user: u } } = await supabase.auth.getUser()
-      if (!u) {
+      try {
+        const { data: { user: u } } = await supabase.auth.getUser()
+        if (!u) {
+          router.push("/auth")
+          return
+        }
+        setUser(u)
+
+        const { data: p } = await supabase
+          .from("profiles")
+          .select()
+          .eq("id", u.id)
+          .single()
+        setProfile(p)
+        setNameInput(p?.username ?? "")
+
+        const { data: s } = await supabase
+          .from("stories")
+          .select()
+          .eq("author_id", u.id)
+          .order("created_at", { ascending: false })
+        setStories(s ?? [])
+      } catch {
+        // 네트워크/인증 오류 시 로그인 페이지로 이동
         router.push("/auth")
-        return
+      } finally {
+        setLoading(false)
       }
-      setUser(u)
-
-      const { data: p } = await supabase
-        .from("profiles")
-        .select()
-        .eq("id", u.id)
-        .single()
-      setProfile(p)
-      setNameInput(p?.username ?? "")
-
-      const { data: s } = await supabase
-        .from("stories")
-        .select()
-        .eq("author_id", u.id)
-        .order("created_at", { ascending: false })
-      setStories(s ?? [])
-
-      setLoading(false)
     }
     load()
   }, [])
@@ -167,7 +175,10 @@ export default function MyPage() {
       return
     }
     const { error } = await supabase.from("profiles").update({ is_anonymous: next }).eq("id", user.id)
-    if (error) return
+    if (error) {
+      setAnonError("변경에 실패했습니다. 다시 시도해주세요.")
+      return
+    }
     setProfile({ ...profile, is_anonymous: next })
   }
 
@@ -179,21 +190,35 @@ export default function MyPage() {
     })
   }
 
+  function handleStoryCardClick(story: Story) {
+    setPendingFlyTo(story)
+    router.push("/map")
+  }
+
   async function deleteSelected() {
     if (selectedIds.size === 0) return
     setDeleting(true)
+    setDeleteError(null)
     const ids = Array.from(selectedIds)
-    await supabase.from("stories").delete().in("id", ids)
-    setStories((prev) => prev.filter((s) => !selectedIds.has(s.id)))
-    setSelectedIds(new Set())
+    const { error } = await supabase.from("stories").delete().in("id", ids)
+    if (!error) {
+      setStories((prev) => prev.filter((s) => !selectedIds.has(s.id)))
+      setSelectedIds(new Set())
+    } else {
+      setDeleteError("삭제에 실패했습니다. 다시 시도해주세요.")
+    }
     setDeleting(false)
   }
 
   async function handleLogout() {
     setLoggingOut(true)
-    await supabase.auth.signOut()
-    router.push("/auth")
-    router.refresh()
+    try {
+      await supabase.auth.signOut()
+      router.push("/auth")
+      router.refresh()
+    } catch {
+      setLoggingOut(false)
+    }
   }
 
   // — 차트 데이터 —
@@ -306,6 +331,10 @@ export default function MyPage() {
             )}
           </div>
 
+          {deleteError && (
+            <p className="text-[12px] text-red-400">{deleteError}</p>
+          )}
+
           {stories.length === 0 ? (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-10 text-center">
               <p className="text-[13px] text-white/30">아직 남긴 이야기가 없습니다</p>
@@ -315,21 +344,25 @@ export default function MyPage() {
               {stories.map((story) => {
                 const mood = story.mood && MOOD_CONFIG[story.mood]
                 return (
-                  <label
+                  <div
                     key={story.id}
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                    className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
                       selectedIds.has(story.id)
-                        ? "border-white/20 bg-white/[0.06]"
-                        : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                        ? "border-white/20 bg-white/6"
+                        : "border-white/10 bg-white/3"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedIds.has(story.id)}
                       onChange={() => toggleSelect(story.id)}
-                      className="mt-1 accent-white/50"
+                      className="mt-1 shrink-0 cursor-pointer accent-white/50"
                     />
-                    <div className="flex-1 space-y-1 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => handleStoryCardClick(story)}
+                      className="flex-1 space-y-1 overflow-hidden text-left"
+                    >
                       <div className="flex items-center gap-2">
                         {mood && <span className="text-sm">{mood.emoji}</span>}
                         {mood && (
@@ -349,8 +382,16 @@ export default function MyPage() {
                       <p className="truncate text-[13px] leading-relaxed text-white/60">
                         {story.content}
                       </p>
-                    </div>
-                  </label>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStoryCardClick(story)}
+                      className="mt-0.5 shrink-0 cursor-pointer text-white/20 transition-colors hover:text-white/50"
+                      title="지도에서 보기"
+                    >
+                      <MapPin className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )
               })}
             </div>
@@ -360,12 +401,12 @@ export default function MyPage() {
         {/* 활동 통계 */}
         <section className="space-y-4">
           <h2 className="text-[13px] font-medium uppercase tracking-widest text-white/30">활동 통계</h2>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="rounded-xl border border-white/10 bg-white/3 p-5">
             {stories.length === 0 ? (
               <p className="py-6 text-center text-[13px] text-white/30">데이터가 없습니다</p>
             ) : (
               <div className="flex items-center gap-6">
-                <div className="h-40 w-40 flex-shrink-0">
+                <div className="h-40 w-40 shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -403,7 +444,7 @@ export default function MyPage() {
         {/* 설정 */}
         <section className="space-y-4">
           <h2 className="text-[13px] font-medium uppercase tracking-widest text-white/30">설정</h2>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="rounded-xl border border-white/10 bg-white/3 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[14px] text-white/70">익명 모드</p>
@@ -435,7 +476,7 @@ export default function MyPage() {
             type="button"
             disabled={loggingOut}
             onClick={handleLogout}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3.5 text-[14px] text-red-400/70 transition-colors hover:bg-white/[0.06] hover:text-red-400 disabled:opacity-50"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/3 px-5 py-3.5 text-[14px] text-red-400/70 transition-colors hover:bg-white/6 hover:text-red-400 disabled:opacity-50"
           >
             <LogOut className="h-4 w-4" />
             {loggingOut ? "로그아웃 중..." : "로그아웃"}
