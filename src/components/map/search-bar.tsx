@@ -16,12 +16,36 @@ interface SearchBarProps {
 
 const SEOUL_BBOX = "126.55,37.28,127.39,37.85";
 const KAKAO_KEY = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY;
+const FETCH_TIMEOUT_MS = 5000;
 
-async function fetchKakaoResults(query: string): Promise<SearchResult[]> {
+function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  signal: AbortSignal
+): Promise<Response> {
+  const timeoutController = new AbortController();
+  const timer = setTimeout(() => timeoutController.abort(), FETCH_TIMEOUT_MS);
+
+  // 외부 signal(디바운스 취소) 또는 타임아웃 signal 중 먼저 abort되는 쪽 사용
+  const combinedSignal = AbortSignal.any
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : signal;
+
+  return fetch(url, { ...options, signal: combinedSignal }).finally(() => clearTimeout(timer));
+}
+
+async function fetchKakaoResults(query: string, signal: AbortSignal): Promise<SearchResult[]> {
   if (!KAKAO_KEY) return [];
   const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&rect=126.55,37.28,127.39,37.85&size=5`;
-  const res = await fetch(url, { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } });
-  if (!res.ok) return [];
+  const res = await fetchWithTimeout(
+    url,
+    { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } },
+    signal
+  );
+  if (!res.ok) {
+    console.warn("[SearchBar] Kakao API error:", res.status, res.statusText);
+    return [];
+  }
   const data = await res.json();
   return (data.documents ?? []).map(
     (d: {
@@ -41,10 +65,13 @@ async function fetchKakaoResults(query: string): Promise<SearchResult[]> {
   );
 }
 
-async function fetchMapboxResults(query: string): Promise<SearchResult[]> {
+async function fetchMapboxResults(query: string, signal: AbortSignal): Promise<SearchResult[]> {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&bbox=${SEOUL_BBOX}&language=ko&limit=5&types=poi,address,neighborhood,locality`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
+  const res = await fetchWithTimeout(url, {}, signal);
+  if (!res.ok) {
+    console.warn("[SearchBar] Mapbox API error:", res.status, res.statusText);
+    return [];
+  }
   const data = await res.json();
   return (data.features ?? []).map(
     (f: { id: string; place_name: string; center: [number, number] }) => ({
@@ -61,6 +88,7 @@ export function SearchBar({ onSelect }: SearchBarProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!query.trim()) return;
@@ -68,11 +96,25 @@ export function SearchBar({ onSelect }: SearchBarProps) {
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(async () => {
+      // 이전 요청 취소
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
       try {
         const [kakao, mapbox] = await Promise.allSettled([
-          fetchKakaoResults(query),
-          fetchMapboxResults(query),
+          fetchKakaoResults(query, controller.signal),
+          fetchMapboxResults(query, controller.signal),
         ]);
+
+        if (controller.signal.aborted) return;
+
+        if (kakao.status === "rejected" && !isAbortError(kakao.reason)) {
+          console.error("[SearchBar] Kakao fetch failed:", kakao.reason);
+        }
+        if (mapbox.status === "rejected" && !isAbortError(mapbox.reason)) {
+          console.error("[SearchBar] Mapbox fetch failed:", mapbox.reason);
+        }
 
         const kakaoItems = kakao.status === "fulfilled" ? kakao.value : [];
         const mapboxItems = mapbox.status === "fulfilled" ? mapbox.value : [];
@@ -91,8 +133,10 @@ export function SearchBar({ onSelect }: SearchBarProps) {
 
         setResults(merged);
         setOpen(true);
-      } catch {
-        // 네트워크 오류 시 검색 결과 미표시
+      } catch (err) {
+        if (!isAbortError(err)) {
+          console.error("[SearchBar] Unexpected search error:", err);
+        }
       }
     }, 300);
 
@@ -100,6 +144,13 @@ export function SearchBar({ onSelect }: SearchBarProps) {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [query]);
+
+  // 컴포넌트 언마운트 시 진행 중인 요청 취소
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -169,4 +220,8 @@ export function SearchBar({ onSelect }: SearchBarProps) {
       )}
     </div>
   );
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
 }
