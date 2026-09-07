@@ -40,11 +40,11 @@ const TECH_STACK = [
   },
   {
     category: "Backend",
-    items: ["Supabase Auth", "Supabase + PostGIS", "Supabase Realtime", "Supabase RLS"],
+    items: ["Supabase Auth", "Supabase + PostGIS", "Supabase RLS"],
   },
   {
     category: "Infra",
-    items: ["Vercel", "Sentry", "Vitest"],
+    items: ["Vercel"],
   },
 ];
 
